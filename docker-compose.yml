@@ -1,0 +1,58 @@
+version: '3'
+networks:
+    main:
+        driver: bridge
+services:
+  busble_proxy:
+    image: nginx:alpine
+    networks:
+        main:
+            aliases:
+                - api.busble-dev.com
+    ports:
+        - 80:80
+        - 443:443
+    volumes:
+        - "./config/proxy.conf:/etc/nginx/conf.d/default.conf"
+        - "./config/ssl:/etc/nginx/ssl"
+    depends_on:
+        - busble_nginx
+
+  busble_db:
+    image: mariadb:10.2
+    networks:
+      - main
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpw
+      MYSQL_DATABASE: busble
+      MYSQL_USER: busble
+      MYSQL_PASSWORD: devpw
+    command: mysqld --innodb-flush-method=littlesync --innodb-use-native-aio=OFF --log_bin=ON
+    volumes:
+      - ./data/db:/var/lib/mysql
+      - ./config/innodb-fix.cnf:/etc/mysql/conf.d/innodb-fix.cnf
+
+  busble_redis:
+    image: redis:3.2-alpine
+    networks:
+      - main
+
+  busble_nginx:
+    image: nginx:alpine
+    networks:
+      - main
+    volumes:
+      - "./site:/var/www/html"
+      - "./config/nginx.conf:/etc/nginx/conf.d/default.conf"
+    environment:
+        WEBROOT: "/var/www/html"
+    depends_on:
+      - busble_fpm
+
+  busble_fpm:
+    build: ./images/fpm
+    networks:
+      - main
+    volumes:
+      - "./site:/var/www/html"
+      - "./config/php.ini:/usr/local/etc/php/php.ini"
