@@ -18,7 +18,7 @@ class User extends Model implements AuthenticatableContract, AuthorizableContrac
      * @var array
      */
     protected $fillable = [
-        'name', 'telno', 'email', 'gender', 'thumbnail'
+        'name', 'telno', 'email', 'gender', 'thumbnail', 'password'
     ];
 
     /**
@@ -26,7 +26,16 @@ class User extends Model implements AuthenticatableContract, AuthorizableContrac
      *
      * @var array
      */
-    protected $hidden = [
-        'password',
-    ];
+    // protected $hidden = [
+    //     'password',
+    // ];
+
+    public function getThumbnailAttribute()
+    {
+        if (empty($this->attributes['thumbnail'])) {
+            $this->attributes['thumbnail'] = 'https://dummyimage.com/100x100/#fff/#fff.png';
+        }
+
+        return $this->attributes['thumbnail'];
+    }
 }

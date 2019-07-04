@@ -11,15 +11,17 @@
 |
 */
 
-// $router->get('/', function () use ($router) {
-//     return $router->app->version();
-// });
+$router->get('/', function () use ($router) {
+    return view('home');
+});
 $router->group(['prefix' => 'v1'], function () use ($router) {
     $router->group(['prefix' => 'user'], function () use ($router) {
-        $router->post('create', 'UserController@createUser');
         $router->post('login', 'UserController@login');
-        $router->get('{id}', 'UserController@getUser');
-        $router->delete('{id}', 'UserController@destroyUser');
-        $router->put('{id}', 'UserController@updateUser');
+        $router->post('create', 'UserController@createUser');
+        $router->group(['middleware' => 'jwt.auth'], function() use ($router) {
+            $router->get('profile', 'UserController@getProfile');
+            $router->post('update', 'UserController@updateUser');
+        });
+        // $router->delete('{id}/delete', 'UserController@destroyUser');
     });
 });
