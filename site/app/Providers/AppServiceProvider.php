@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Schema;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -11,6 +12,11 @@ class AppServiceProvider extends ServiceProvider
      *
      * @return void
      */
+    public function run()
+    {
+        Schema::defaultStringLength(191);
+    }
+
     public function register()
     {
         //

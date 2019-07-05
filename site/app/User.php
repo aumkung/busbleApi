@@ -18,7 +18,7 @@ class User extends Model implements AuthenticatableContract, AuthorizableContrac
      * @var array
      */
     protected $fillable = [
-        'name', 'telno', 'email', 'gender', 'thumbnail', 'password'
+        'name', 'telno', 'email', 'gender', 'thumbnail'
     ];
 
     /**
@@ -26,9 +26,9 @@ class User extends Model implements AuthenticatableContract, AuthorizableContrac
      *
      * @var array
      */
-    // protected $hidden = [
-    //     'password',
-    // ];
+    protected $hidden = [
+        'password',
+    ];
 
     public function getThumbnailAttribute()
     {

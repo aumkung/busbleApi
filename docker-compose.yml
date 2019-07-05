@@ -26,7 +26,7 @@ services:
       MYSQL_ROOT_PASSWORD: rootpw
       MYSQL_DATABASE: busble
       MYSQL_USER: busble
-      MYSQL_PASSWORD: devpw
+      MYSQL_PASSWORD: busbledevpw
     command: mysqld --innodb-flush-method=littlesync --innodb-use-native-aio=OFF --log_bin=ON
     volumes:
       - ./data/db:/var/lib/mysql
