@@ -12,22 +12,8 @@ class User extends Model implements AuthenticatableContract, AuthorizableContrac
 {
     use Authenticatable, Authorizable;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array
-     */
     protected $fillable = [
-        'name', 'telno', 'email', 'gender', 'thumbnail'
-    ];
-
-    /**
-     * The attributes excluded from the model's JSON form.
-     *
-     * @var array
-     */
-    protected $hidden = [
-        'password',
+        'name', 'telno', 'email', 'gender', 'thumbnail', 'password', 'username', 'email_verify', 'telno_verify'
     ];
 
     public function getThumbnailAttribute()

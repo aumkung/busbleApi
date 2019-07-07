@@ -18,10 +18,10 @@ $router->group(['prefix' => 'v1'], function () use ($router) {
     $router->group(['prefix' => 'user'], function () use ($router) {
         $router->post('login', 'UserController@login');
         $router->post('create', 'UserController@createUser');
+        $router->delete('{id}/delete', 'UserController@destroyUser');
         $router->group(['middleware' => 'jwt.auth'], function() use ($router) {
             $router->get('profile', 'UserController@getProfile');
             $router->post('update', 'UserController@updateUser');
         });
-        // $router->delete('{id}/delete', 'UserController@destroyUser');
     });
 });

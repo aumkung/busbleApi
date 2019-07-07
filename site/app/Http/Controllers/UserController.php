@@ -7,41 +7,58 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Firebase\JWT\JWT;
 use App\User;
+use Carbon\Carbon;
 
 class UserController extends Controller
 {
     protected function jwt(User $user) {
-        $payload = [
-           'iss' => "lumen-jwt", // Issuer of the token
-           'sub' => $user->id, // Subject of the token
-           'iat' => time(), // Time when JWT was issued. 
-           'exp' => time() + 60*60 // Expiration time
-       ];
-       // be used to decode the token in the future.
-       
+       $payload = [
+            'iss' => "user-token", // Issuer of the token
+            'sub' => $user->id, // Subject of the token
+            'iat' => Carbon::now()->timestamp, // Time when JWT was issued. 
+            'exp' => Carbon::now()->addMinutes(60)->timestamp // Expiration time
+        ];
+
        return JWT::encode($payload, env('JWT_SECRET'));
     }
 
     public function login(Request $request) 
     {
         $username_type = filter_var($request->input('username'), FILTER_VALIDATE_EMAIL) ? 'email' : 'telno';
+
         if ($username_type === 'email') {
-            $user = User::whereEmail($request->input('username'))->firstOrfail();
+            $user = User::whereEmail($request->input('username'))->first();
         } else if ($username_type === 'telno') {
-            $user = User::whereTelno($request->input('username'))->firstOrfail();
+            $user = User::whereTelno($request->input('username'))->first();
         }
-        if (Hash::check($request->input('password'), $user->password)) {
-            return response()->json([
-                'status'  => 200,
-                'message' => 'Login Successful',
-                'data'    => ['token' => $this->jwt($user) ] // return token
-            ], 200);
+
+        if (!empty($user)) {
+            if (Hash::check($request->input('password'), $user->password)) {
+                $jwt = $this->jwt($user);
+                $jwt_payload = JWT::decode($jwt, env('JWT_SECRET'), ['HS256']);
+    
+                return response()->json([
+                    'status'  => 200,
+                    'message' => 'Login Successful',
+                    'data'    => [
+                        'token_type' => 'Bearer',
+                        'access_token' => $jwt,
+                        'expires_at' => $jwt_payload->exp 
+                    ]
+                ], 200);
+            } else {
+                return response()->json([
+                    'status'  => 404,
+                    'message' => 'Password Incorect !', // return token
+                ], 404);
+            }
         } else {
             return response()->json([
                 'status'  => 404,
-                'message' => 'Password Incorect !', // return token
+                'message' => 'User Not Found', // return token
             ], 404);
         }
+
     }
 
     public function getProfile(Request $request) 
@@ -51,6 +68,9 @@ class UserController extends Controller
         return [
             'id' => $user->id,
             'name' => $user->name,
+            'username' => $user->username,
+            'telno' => $user->telno,
+            'email' => $user->email,
             'thumbnail' => $user->thumbnail,
             'gender' => $user->gender
         ];
@@ -59,24 +79,27 @@ class UserController extends Controller
     public function createUser(Request $request)
     {
         $this->validate($request, [
-            'username' => 'required',
+            'username' => 'required|unique:users',
             'password' => 'required'
         ]);
-
         $user = [];
         $username_type = filter_var($request->input('username'), FILTER_VALIDATE_EMAIL) ? 'email' : 'telno';
-        $hash = Hash::make($request->input('password'));
         $name = ($username_type === 'email') ? explode('@', $request->input('username'))[0] : $request->input('username');
-        $user = User::firstOrCreate([
+        $user = User::create([
             'name' => $name,
-            'password' => $hash,
+            'username' => $request->input('username'),
+            'password' => Hash::make($request->input('password')),
             'telno' => ($username_type === 'telno') ? $request->input('username') : null,
             'email' => ($username_type === 'email') ? $request->input('username') : null,
             'gender' => null,
-            'thumbnail' => null
+            'thumbnail' => null,
+            'telno_verify' => false,
+            'email_verify' => false,
         ]);
 
-        return $user;
+        return response()->json([
+            'message' => 'Register success'
+        ], 200);
     }
 
     public function destroyUser(Request $request, $id)
@@ -86,27 +109,39 @@ class UserController extends Controller
         if ($user) {
             if ($user->delete()) {
                 return response()->json([
-                    'message' => 'delete success'
+                    'message' => 'Delete success'
                 ], 200);
             } else {
                 return response()->json([
-                    'message' => 'delete unsuccess'
+                    'message' => 'Delete unsuccess'
                 ], 404);
             }
         } else {
             return response()->json([
-                'message' => 'user not found'
+                'message' => 'User not found'
             ], 404);
         }
     }
 
     public function updateUser(Request $request)
     {
+
         $user_id = $request->auth->id;
-        $user = User::whereId($user_id)->update($request->only(['name', 'telno', 'email', 'gender', 'thumbnail']));
-        if ($user) {
+        $user = User::whereId($user_id)->first();
+        if (!empty($user)) {
+            if ($user->email === $request->input('email')) {
+                return response()->json([
+                    'message' => 'Email has already'
+                ], 400);
+            }
+            if ($user->telno === $request->input('telno')) {
+                return response()->json([
+                    'message' => 'Telno has already'
+                ], 400);
+            }
+            $user->update($request->only(['name', 'telno', 'email', 'gender', 'thumbnail']));
             return response()->json([
-                'message' => 'update success'
+                'message' => 'Update success'
             ], 200);
         }
     }
