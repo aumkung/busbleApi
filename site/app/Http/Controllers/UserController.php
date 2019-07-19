@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
+use Intervention\Image\ImageManagerStatic as Image;
 use Firebase\JWT\JWT;
 use App\User;
 use Carbon\Carbon;
@@ -31,7 +33,7 @@ class UserController extends Controller
         } else if ($username_type === 'telno') {
             $user = User::whereTelno($request->input('username'))->first();
         }
-
+        
         if (!empty($user)) {
             if (Hash::check($request->input('password'), $user->password)) {
                 $jwt = $this->jwt($user);
@@ -64,14 +66,13 @@ class UserController extends Controller
     public function getProfile(Request $request) 
     {
         $user = $request->auth;
-
         return [
             'id' => $user->id,
             'name' => $user->name,
             'username' => $user->username,
             'telno' => $user->telno,
             'email' => $user->email,
-            'thumbnail' => $user->thumbnail,
+            'thumbnail_url' => $user->thumbnail_url,
             'gender' => $user->gender
         ];
     }
@@ -125,7 +126,6 @@ class UserController extends Controller
 
     public function updateUser(Request $request)
     {
-
         $user_id = $request->auth->id;
         $user = User::whereId($user_id)->first();
         if (!empty($user)) {
@@ -139,10 +139,43 @@ class UserController extends Controller
                     'message' => 'Telno has already'
                 ], 400);
             }
-            $user->update($request->only(['name', 'telno', 'email', 'gender', 'thumbnail']));
+            $user->update([
+                'name' => $request->input('name') ? $request->input('name') : $user->name,
+                'telno' => $request->input('telno') ? $request->input('telno') : $user->telno,
+                'email' => $request->input('email') ? $request->input('email') : $user->email,
+                'gender' => $request->input('gender') ? $request->input('gender') : $user->gender
+            ]);
+            if ($request->hasFile('thumbnail')) {
+                $filename = sprintf('thumbnail/%s/%s.jpg', date('Y/m/d'), str_random(8));
+                $disk = Storage::disk('public');
+                $image = Image::make($request->file('thumbnail')->path())->encode('jpg', 75);
+                if ($disk->exists($user->thumbnail)) {
+                    $disk->delete($user->thumbnail);
+                }
+                if ($disk->put($filename, $image)) {
+                    $user->update(['thumbnail' => $filename]);
+                }
+            }
+
             return response()->json([
                 'message' => 'Update success'
             ], 200);
+        }
+    }
+
+    public function testUpload(Request $request)
+    {
+        if ($request->hasFile('image')) {
+            $filename = sprintf('thumbnail/%s/%s.jpg', date('Y/m/d'), str_random(8));
+            $disk = Storage::disk('public');
+            $image = Image::make($request->file('image')->path())->fit(150, 150)->encode('jpg', 75);
+            if ($disk->put($filename, $image)) {
+                return response()->json([
+                    'message' => 'uploaded success'
+                ], 200);
+            }
+        } else {
+            return [];
         }
     }
 }
