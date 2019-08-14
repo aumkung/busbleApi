@@ -24,11 +24,5 @@ $app = require __DIR__.'/../bootstrap/app.php';
 | and wonderful application we have prepared for them.
 |
 */
-if (env('APP_ENV') === 'production') {
-   if(DB::connection()->getDatabaseName())
-   {
-      echo "Connected to database ".DB::connection()->getDatabaseName();
-   }
-}
 
 $app->run();

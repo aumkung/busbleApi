@@ -14,6 +14,8 @@
 $router->get('/', function () use ($router) {
     return view('home');
 });
+$router->get('test/home2', 'UserController@testView');
+$router->post('test/upload', 'UserController@testUpload');
 $router->group(['prefix' => 'v1'], function () use ($router) {
     $router->group(['prefix' => 'user'], function () use ($router) {
         $router->post('login', 'UserController@login');

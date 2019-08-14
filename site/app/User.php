@@ -24,7 +24,12 @@ class User extends Model implements AuthenticatableContract, AuthorizableContrac
         if (empty($this->attributes['thumbnail'])) {
             return 'https://dummyimage.com/100x100/#fff/#fff.png';
         } else {
-            return Storage::disk('public')->url($this->attributes['thumbnail']);
+            return $this->disk('s3')->url($this->attributes['thumbnail']);
         }
+    }
+
+    protected function disk()
+    {
+        return env('APP_ENV') === 'production' ? Storage::disk('s3') : Storage::disk('public');
     }
 }

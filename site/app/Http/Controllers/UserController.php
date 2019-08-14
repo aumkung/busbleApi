@@ -13,7 +13,13 @@ use Carbon\Carbon;
 
 class UserController extends Controller
 {
-    protected function jwt(User $user) {
+    public function disk() 
+    {
+        return env('APP_ENV') === 'production' ? Storage::disk('s3') : Storage::disk('public');
+    }
+
+    protected function jwt(User $user) 
+    {
        $payload = [
             'iss' => "user-token", // Issuer of the token
             'sub' => $user->id, // Subject of the token
@@ -147,7 +153,7 @@ class UserController extends Controller
             ]);
             if ($request->hasFile('thumbnail')) {
                 $filename = sprintf('thumbnail/%s/%s.jpg', date('Y/m/d'), str_random(8));
-                $disk = Storage::disk('public');
+                $disk = $this->disk();
                 $image = Image::make($request->file('thumbnail')->path())->encode('jpg', 75);
                 if ($disk->exists($user->thumbnail)) {
                     $disk->delete($user->thumbnail);
@@ -167,7 +173,7 @@ class UserController extends Controller
     {
         if ($request->hasFile('image')) {
             $filename = sprintf('thumbnail/%s/%s.jpg', date('Y/m/d'), str_random(8));
-            $disk = Storage::disk('public');
+            $disk = $this->disk();
             $image = Image::make($request->file('image')->path())->fit(150, 150)->encode('jpg', 75);
             if ($disk->put($filename, $image)) {
                 return response()->json([
@@ -177,5 +183,13 @@ class UserController extends Controller
         } else {
             return [];
         }
+    }
+
+    public function testView(Request $request)
+    {
+        $user = User::find(1);
+        return view('home2', [
+            'user' => $user
+        ]);
     }
 }
